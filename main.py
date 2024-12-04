@@ -2,14 +2,23 @@ from fastapi import FastAPI, HTTPException
 import sqlite3
 from models import LoginRequest,RegRequest,Delete,Update
 
-
 app = FastAPI()
 db = "db.db"
 
 
 
-
-
+app = FastAPI(
+    title="UsersDump",                
+    description="UserDump Api Made With ❤️", 
+    version="1.0.0",       
+    swagger_ui_parameters={
+        "displayRequestDuration": True,  
+        "defaultModelsExpandDepth": -1, 
+        "showExtensions": False,        
+        "hideTopbar": False,            
+    }               
+   
+)
 
 
 
