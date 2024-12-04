@@ -1,6 +1,6 @@
 
 # UsersDump
-
+![UsersDump](UsersDump.jpg)
 **UsersDump** is a FastAPI project designed for front-end developers to test and integrate user management functionalities. This project provides a simple and effective way to simulate common user operations, including adding, logging in, searching, deleting, and updating users.
 
 ---
@@ -48,8 +48,7 @@
 
 ---
 
-## Project Image
-![UsersDump](./usersdump_demo.png)
+
 
 ---
 
