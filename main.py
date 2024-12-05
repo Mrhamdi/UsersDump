@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 import sqlite3
 from models import LoginRequest,RegRequest,Delete,Update
-
+from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 db = "db.db"
 
