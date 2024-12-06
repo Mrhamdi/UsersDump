@@ -37,11 +37,8 @@ def get_all_users_info(credentials:masterUsers):
     try:
         conn = sqlite3.connect(db)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users where key =?",(credentials.key))
+        cursor.execute("SELECT * FROM users where key = ?",(credentials.key,))
         db_user = cursor.fetchall()
-        
-
-       
         users = [{"id": user[0], "first_name": user[1], "last_name": user[2], "username": user[3], "password": user[4]} for user in db_user]
         
         return {"users": users}
