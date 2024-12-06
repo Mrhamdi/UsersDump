@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 import sqlite3
-from models import LoginRequest,RegRequest,Delete,Update,masterRegister
+from models import LoginRequest,RegRequest,Delete,Update,masterRegister,masterUsers
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 db = "db.db"
@@ -20,14 +21,23 @@ app = FastAPI(
    
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"], 
+)
 
 
-@app.get("/users")
-def get_all_users_info():
+
+    
+@app.post("/master/users")
+def get_all_users_info(credentials:masterUsers):
     try:
         conn = sqlite3.connect(db)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users")
+        cursor.execute("SELECT * FROM users where key =?",(credentials.key))
         db_user = cursor.fetchall()
         
 
@@ -71,7 +81,7 @@ def login(credentials:masterRegister):
     
 
 
-@app.post("/login")
+@app.post("/users/login")
 def login(credentials: LoginRequest):
     try:
         conn = sqlite3.connect(db, check_same_thread=False)
@@ -79,11 +89,11 @@ def login(credentials: LoginRequest):
         cursor = conn.cursor()
 
         
-        cursor.execute("SELECT id, username, password FROM users WHERE username = ?", (credentials.username,))
+        cursor.execute("SELECT id, username, password,key FROM users WHERE username = ?", (credentials.username,))
         user = cursor.fetchone()
         conn.close()
 
-       
+        stored_key = credentials.key
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
@@ -91,6 +101,8 @@ def login(credentials: LoginRequest):
 
         if credentials.password != stored_password:
             raise HTTPException(status_code=401, detail="Incorrect password")
+        if user[3] != stored_key:
+            raise HTTPException(status_code=401, detail="Incorrect Master Key")
         
       
         return {"message": "Login successful", "user_id": user[0], "username": user[1]}
@@ -99,18 +111,20 @@ def login(credentials: LoginRequest):
          raise HTTPException(status_code=505, detail="Invalid User Info")
     
 
-@app.patch("/update")
+@app.patch("users/update")
 def update_user(credentials: Update):
     try:
         if not credentials.id:
             raise HTTPException(status_code=400, detail="ID cannot be empty")
+        if not credentials.key:
+            raise HTTPException(status_code=400, detail="KEY cannot be empty")
         conn = sqlite3.connect(db, check_same_thread=False)
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE users
             SET first_name = ?, last_name = ?, password = ?
-            WHERE id = ?
-        """, (credentials.first_name, credentials.last_name, credentials.password, credentials.id))
+            WHERE id = ? and key =?
+        """, (credentials.first_name, credentials.last_name, credentials.password, credentials.id,credentials.key))
         conn.commit()
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="User not found")
@@ -120,14 +134,14 @@ def update_user(credentials: Update):
     except:
         raise HTTPException(status_code=500,detail="Server Error")
 
-@app.delete("/delete")
+@app.delete("/users/delete")
 def DeleteUser(credentials:Delete):
     try:
         if not credentials.id:
             raise HTTPException(status_code=400,detail="Id Empty")
         conn = sqlite3.connect(db, check_same_thread=False)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM users WHERE id=?",(credentials.id))
+        cursor.execute("DELETE FROM users WHERE id=? and key=?",(credentials.id,credentials.key))
         conn.commit()
         return {"successful":"user has been deleted"}
             
@@ -168,7 +182,7 @@ def masterAdd(credentials:masterRegister):
 
 
 
-@app.put("/register")
+@app.put("/users/register")
 def reg(credentials: RegRequest):
     try:
     
@@ -180,15 +194,16 @@ def reg(credentials: RegRequest):
             raise HTTPException(status_code=400, detail="Username is required")
         if not credentials.password:
             raise HTTPException(status_code=400, detail="Password is required")
-        
+        if not credentials.key:
+            raise HTTPException(status_code=400, detail="Key is required")
         conn = sqlite3.connect(db, check_same_thread=False)
         cursor = conn.cursor()
 
         
         cursor.execute("""
-            INSERT INTO users (first_name, last_name, username, password) 
-            VALUES (?, ?, ?, ?)
-        """, (credentials.first_name, credentials.last_name, credentials.username, credentials.password))
+            INSERT INTO users (first_name, last_name, username, password,key) 
+            VALUES (?, ?, ?, ?,?)
+        """, (credentials.first_name, credentials.last_name, credentials.username, credentials.password,credentials.key))
 
         
         conn.commit()
