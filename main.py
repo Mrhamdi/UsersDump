@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException
 import sqlite3
 from models import LoginRequest,RegRequest,Delete,Update,masterRegister,masterUsers
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 db = "db.db"
@@ -30,7 +32,11 @@ app.add_middleware(
 )
 
 
-
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    with open("static/index.html", "r") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
     
 @app.post("/master/users")
 def get_all_users_info(credentials:masterUsers):
