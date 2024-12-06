@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 import sqlite3
-from models import LoginRequest,RegRequest,Delete,Update
-from fastapi.middleware.cors import CORSMiddleware
+from models import LoginRequest,RegRequest,Delete,Update,masterRegister
+
 app = FastAPI()
 db = "db.db"
 
@@ -20,13 +20,7 @@ app = FastAPI(
    
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], 
-    allow_credentials=True,
-    allow_methods=["*"], 
-    allow_headers=["*"], 
-)
+
 
 @app.get("/users")
 def get_all_users_info():
@@ -44,6 +38,36 @@ def get_all_users_info():
     
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    
+@app.post("/master/login")
+def login(credentials:masterRegister):
+    try:
+        conn = sqlite3.connect(db, check_same_thread=False)
+
+        cursor = conn.cursor()
+
+        
+        cursor.execute("SELECT id, username, password,key FROM mainusers WHERE username = ?", (credentials.username,))
+        user = cursor.fetchone()
+        conn.close()
+
+       
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        stored_password = user[2] 
+        stored_key = user[3] 
+
+        if credentials.password != stored_password:
+            raise HTTPException(status_code=401, detail="Incorrect Password")
+        
+        if credentials.key != stored_key:
+            raise HTTPException(status_code=401, detail="Incorrect Key")
+      
+        return {"message": "Login successful", "user_id": user[0], "username": user[1],"key":user[3]}
+
+    except:
+         raise HTTPException(status_code=505, detail="Invalid User Info")
     
 
 
@@ -110,6 +134,39 @@ def DeleteUser(credentials:Delete):
 
     except:
         raise HTTPException(status_code=500,detail="Server Error")
+
+@app.put("/master/add")
+def masterAdd(credentials:masterRegister):
+    try:
+        if not credentials.username:
+            raise HTTPException(status_code=400, detail="Username is required")
+        if not credentials.password:
+            raise HTTPException(status_code=400, detail="Password is required")
+        if not credentials.key:
+            raise HTTPException(status_code=400, detail="Key is required")
+        
+        conn = sqlite3.connect(db, check_same_thread=False)
+        cursor = conn.cursor()
+
+        
+        cursor.execute("""
+            INSERT INTO mainusers (username, password,key) 
+            VALUES (?, ?,?)
+        """, (credentials.username, credentials.password,credentials.key))
+
+        
+        conn.commit()
+        conn.close()
+
+        return {"message": "Master registered successfully"}
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
 
 @app.put("/register")
 def reg(credentials: RegRequest):

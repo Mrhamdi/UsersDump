@@ -11,6 +11,12 @@ class RegRequest(BaseModel):
     username: str
     password: str
 
+class masterRegister(BaseModel):
+    username:str
+    password:str
+    key:str
+
+
 class Delete(BaseModel):
     id:str
 
